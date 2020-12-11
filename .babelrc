@@ -1,6 +1,7 @@
 {
   "plugins": [
-    ["@babel/plugin-transform-react-jsx", { "pragma": "createElement" }]
+    ["@babel/plugin-transform-react-jsx", { "pragma": "createElement" }],
+    ["@babel/plugin-proposal-class-properties"]
   ],
   "comments": false
 }

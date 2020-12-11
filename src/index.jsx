@@ -1,59 +1,69 @@
 import { h, Component, updateElement } from "./framework.js";
+import axios from "axios";
 /** @jsx h */
 
 // ---------------------------------------------------------------------
-
-class App extends Component {
+class Post extends Component {
   constructor(props, children) {
     super(props, children);
-    this.state = {
-      abc: "ok",
-      hover: "hover",
-    };
-  }
-  onClick() {
-    console.log(this.state.abc);
-  }
-  onHover() {
-    console.log(this.state.hover);
   }
   render() {
-    return (
-      <div>
-        <div onHover={this.onHover} onClick={this.onClick}>
-          {this.state.abc}
-        </div>
-        <div>{this.children}</div>
-      </div>
-    );
+    return <div>{this.props.title}</div>;
   }
 }
 
-class Box extends Component {
+class Posts extends Component {
   constructor(props, children) {
     super(props, children);
+    this.state = { todos: "", newTodo: "" };
+  }
+  async onMount() {
+    let res = await axios("https://jsonplaceholder.typicode.com/todos/");
+    let obj = res.data;
+    this.setState({ todos: obj });
+  }
+  onChange(e) {
+    this.setState({
+      newTodo: e.target.value,
+    });
+  }
+  onClick() {
+    const newTodo = { title: this.state.newTodo, id: 433 };
+    this.setState({
+      todos: [newTodo, ...this.state.todos],
+      newTodo: "",
+    });
   }
   render() {
+    let todos = this.state.todos.map((child) => (
+      <Post
+        title={child.title}
+        className={child.completed ? "post line-through" : "post"}
+      />
+    ));
     return (
-      <section>
-        <h2>BOX Component</h2>
-      </section>
+      <div id={this.id} className="container">
+        <input
+          id="in"
+          value={this.state.newTodo}
+          onChange={this.onChange}
+        ></input>
+        <button className="btn" onClick={this.onClick}>
+          Ajouter
+        </button>
+        <p>{this.state.newTodo}</p>
+        <div className="posts">{todos}</div>
+      </div>
     );
   }
 }
 
 const a = (
   <div>
-    <App>
-      <div>efjefeo</div>
-    </App>
+    <Posts />
   </div>
 );
 
 const $root = document.getElementById("root");
-const $reload = document.getElementById("reload");
 
 updateElement($root, a);
-$reload.addEventListener("click", () => {
-  updateElement($root, a, a);
-});
