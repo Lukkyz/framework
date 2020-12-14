@@ -8,7 +8,6 @@ export class Component {
   }
   setState(newState) {
     this.state = Object.assign(this.state, newState);
-    console.log(this.state);
     if (this.oldNode) {
       this.updateComponent();
     }
@@ -17,6 +16,7 @@ export class Component {
     let old = this.oldNode;
     let parent = document.getElementById(this.id).parentNode;
     let newNode = this.render();
+    newNode.props.id = this.id;
     updateElement(parent, newNode, old);
     this.oldNode = newNode;
   }
@@ -30,8 +30,17 @@ export async function updateElement($parent, newNode, oldNode, index = 0) {
   if (!oldNode) {
     $parent.appendChild(await createElement(newNode));
   } else if (!newNode) {
+    if (typeof oldNode.type === "object") {
+      if (oldNode.type.onUnmount) {
+        oldNode.type.onUnmount();
+      }
+    }
     $parent.removeChild($parent.childNodes[index]);
   } else if (changed(newNode, oldNode)) {
+    if (newNode.props.id === oldNode.props.id) {
+      let oldDom = document.getElementById(`${oldNode.props.id}`);
+      oldDom = await createElement(newNode);
+    }
     if ($parent.childNodes[index]) {
       $parent.replaceChild(
         await createElement(newNode),
@@ -72,8 +81,10 @@ export async function createElement(node, component) {
   }
   if (typeof node.type === "function") {
     let obj = new node.type(node.props, node.children);
+    node.type = obj;
     if (obj.onMount) await obj.onMount();
     let html = obj.render();
+    html.props.id = obj.id;
     obj.oldNode = html;
     $el = await createElement(html, obj);
     if (node.props && node.props.className) {
@@ -108,12 +119,18 @@ export async function createElement(node, component) {
     if (node.props.onClick && node.component) {
       $el.addEventListener("click", node.props.onClick.bind(node.component));
     }
+
     if (node.props.id) {
       $el.id = node.props.id;
     }
     if (node.props.value) {
       $el.value = node.props.value;
-      console.log("d", $el);
+    }
+    if (node.props.type) {
+      $el.type = node.props.type;
+    }
+    if (node.props.checked) {
+      $el.checked = node.props.checked;
     }
   }
   return $el;
@@ -122,12 +139,30 @@ export async function createElement(node, component) {
 function changed(node1, node2) {
   return (
     typeof node1 !== typeof node2 ||
-    (typeof node1 === "string" && node1 != node2) ||
+    (typeof node1 === "string" && node1 !== node2) ||
     node1.type !== node2.type ||
     (typeof node1 === "object" &&
       typeof node2 === "object" &&
       node1.props &&
       node2.props &&
-      node1.props.title !== node2.props.title)
+      node1.props.title !== node2.props.title) ||
+    (typeof node1 === "object" &&
+      typeof node2 === "object" &&
+      node1.props &&
+      node2.props &&
+      node1.props.value !== node2.props.value) ||
+    (typeof node1 === "object" &&
+      typeof node2 === "object" &&
+      node1.props &&
+      node2.props &&
+      node1.props.className !== node2.props.className) ||
+    (typeof node1 === "object" &&
+      typeof node2 === "object" &&
+      node1.props &&
+      node2.props &&
+      node1.props.checked !== node2.props.checked) ||
+    (typeof node1 === "object" &&
+      typeof node2 === "object" &&
+      Object.keys(node1.props) !== Object.keys(node2.props))
   );
 }
